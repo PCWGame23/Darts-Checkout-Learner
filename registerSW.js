@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/Darts-Checkout-Learner/sw.js', { scope: '/Darts-Checkout-Learner/' })})}
