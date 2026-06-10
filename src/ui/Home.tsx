@@ -7,7 +7,7 @@ import {
   stageProgress,
   STAGES
 } from '../learn/progress'
-import { allUnitsComplete, missTrainingUnlocked, MISS_UNLOCK_MIN } from '../learn/lessons'
+import { allUnitsComplete } from '../learn/lessons'
 import { todayISO, useAppState } from '../state/store'
 import Mascot from './Mascot'
 
@@ -28,13 +28,29 @@ export default function Home({ onStartLesson, onStartEndless, onStartMiss, onSet
   const current = currentStageId(state)
   const doneToday = state.streak.lastLessonDate === todayISO()
   const endlessUnlocked = allUnitsComplete(state)
-  const missUnlocked = missTrainingUnlocked(state)
 
   return (
     <div className="screen home">
       <div className="topbar">
-        <span className="streak-chip">🔥 {state.streak.current} {t('home.streak')}</span>
+        <span className="streak-chip">🔥 {state.streak.current}</span>
         <span className="spacer" />
+        <button
+          className="btn-ghost mode-btn"
+          onClick={onStartEndless}
+          disabled={!endlessUnlocked}
+          aria-label={t('home.endless')}
+          title={t('home.endless')}
+        >
+          ♾️
+        </button>
+        <button
+          className="btn-ghost mode-btn"
+          onClick={onStartMiss}
+          aria-label={t('home.miss')}
+          title={t('home.miss')}
+        >
+          🎯
+        </button>
         <button className="btn-ghost" onClick={onSettings} aria-label={t('settings.title')}>
           ⚙️
         </button>
@@ -105,43 +121,6 @@ export default function Home({ onStartLesson, onStartEndless, onStartMiss, onSet
             </div>
           )
         })}
-
-        <div className="path-row" style={{ transform: `translateX(${OFFSETS[STAGES.length % OFFSETS.length]}px)` }}>
-          {endlessUnlocked && <div className="start-bubble">{t('home.node.start')}</div>}
-          <button
-            className={`node endless${endlessUnlocked ? ' current' : ' locked'}`}
-            disabled={!endlessUnlocked}
-            onClick={onStartEndless}
-            aria-label={t('home.endless')}
-          >
-            <span className="node-face">{endlessUnlocked ? '♾️' : '🔒'}</span>
-          </button>
-          <div className="node-label">
-            {t('home.endless')}
-            <span className="node-sub">{t('home.endless.sub')}</span>
-          </div>
-        </div>
-
-        <div
-          className="path-row"
-          style={{ transform: `translateX(${OFFSETS[(STAGES.length + 1) % OFFSETS.length]}px)` }}
-        >
-          {missUnlocked && <div className="start-bubble">{t('home.node.start')}</div>}
-          <button
-            className={`node miss${missUnlocked ? ' current' : ' locked'}`}
-            disabled={!missUnlocked}
-            onClick={onStartMiss}
-            aria-label={t('home.miss')}
-          >
-            <span className="node-face">{missUnlocked ? '🎯' : '🔒'}</span>
-          </button>
-          <div className="node-label">
-            {t('home.miss')}
-            <span className="node-sub">
-              {missUnlocked ? t('home.miss.sub') : t('home.miss.locked', { n: MISS_UNLOCK_MIN })}
-            </span>
-          </div>
-        </div>
       </div>
     </div>
   )

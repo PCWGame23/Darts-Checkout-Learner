@@ -119,6 +119,25 @@ button:disabled {
   font-weight: 700;
 }
 
+/* Quick-access mode buttons in the top bar (endless / miss training). */
+.mode-btn {
+  background: var(--card-raised);
+  border-radius: 999px;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  font-size: 1.3rem;
+  padding: 0;
+}
+.mode-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.mode-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
 /* Progress bar */
 .progress-track {
   background: var(--bg-deep);
