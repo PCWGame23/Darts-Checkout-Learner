@@ -64,13 +64,13 @@ describe('classifyRemainder', () => {
 })
 
 describe('finish grading', () => {
-  it('R=60: exact route good, valid alt almost, non-double again, wrong sum again', () => {
+  it('R=60: any valid finish good, non-double again, wrong sum again', () => {
     const c = buildMissChallenge(78, {})! // T18 → S18, R=60
     expect(c.remainder).toBe(60)
     expect(c.kind).toBe('finish')
 
     expect(gradeMissAnswer([S(20), D(20)], c)).toBe('good')
-    expect(gradeMissAnswer([D(10), D(20)], c)).toBe('almost')
+    expect(gradeMissAnswer([D(10), D(20)], c)).toBe('good') // valid alt = fully correct
     expect(gradeMissAnswer([T(20)], c)).toBe('again')
     expect(gradeMissAnswer([S(20), D(18)], c)).toBe('again')
   })
@@ -81,7 +81,7 @@ describe('finish grading', () => {
     expect(c.direct).toEqual(D(25))
     expect(gradeMissAnswer([D(25)], c)).toBe('good')
     expect(gradeMissAnswer([S(10), D(20)], c)).toBe('good') // taught route
-    expect(gradeMissAnswer([S(18), D(16)], c)).toBe('almost')
+    expect(gradeMissAnswer([S(18), D(16)], c)).toBe('good') // valid alt = fully correct
   })
 })
 

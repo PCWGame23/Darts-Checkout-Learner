@@ -16,7 +16,13 @@ import {
   type AppState,
   type ItemProgress
 } from '../state/store'
-import { computeUnlockedStage, isStageComplete, LEARN_SCORES, STAGES } from './progress'
+import {
+  computeUnlockedStage,
+  isStageComplete,
+  LEARN_SCORES,
+  MASTERY_REPS,
+  STAGES
+} from './progress'
 import { dueItems, gradeItem, newItem, type Grade } from './scheduler'
 
 export type ExerciseType = 'board' | 'tiles'
@@ -32,6 +38,9 @@ export interface LessonItem {
 export const LESSON_SIZE = 10
 const MAX_NEW_PER_LESSON = 4
 export const MISS_UNLOCK_MIN = 5
+/** Miss training drops trivial finishes: any remainder this low or below is
+ *  a one-/easy-two-dart checkout and not worth drilling. */
+export const MISS_MIN_REMAINDER = 60
 
 /** Deterministic shuffle so a given seed always yields the same order. */
 function seededShuffle<T>(arr: readonly T[], seed: number): T[] {
@@ -104,6 +113,32 @@ export function buildLesson(state = getState(), today = todayISO()): LessonItem[
     }
   }
 
+  // 3. Fallback: nothing due today and no new scores left in the unlocked
+  //    stages would otherwise produce an empty lesson — and an empty lesson
+  //    makes the path nodes look dead (LessonScreen exits immediately). Keep
+  //    practising the not-yet-mastered scores so the learner can push toward
+  //    mastery instead of being stuck waiting for tomorrow's reviews.
+  if (items.length === 0) {
+    const unlockedScores = STAGES.filter((s) => s.id <= unlocked).flatMap((s) => s.scores)
+    const practised = unlockedScores
+      .map((score) => state.items[score])
+      .filter((it): it is ItemProgress => !!it && it.reps < MASTERY_REPS)
+      .sort((a, b) => (a.due < b.due ? -1 : a.due > b.due ? 1 : 0))
+    const fallback = practised.length > 0 ? practised.map((it) => it.score) : unlockedScores
+    for (const score of fallback.slice(0, LESSON_SIZE)) {
+      const taught = taughtRoute(score, favs)
+      if (taught) {
+        const reps = state.items[score]?.reps ?? 0
+        items.push({
+          score,
+          exercise: pickExercise(taught, false, score + reps),
+          isNew: false,
+          taught
+        })
+      }
+    }
+  }
+
   // Interleave reviews and new items so the lesson doesn't feel ordered.
   return seededShuffle(items, daySeed(today))
 }
@@ -127,35 +162,75 @@ export function buildEndlessLesson(
   return items
 }
 
-/** Build a dedicated miss-training lesson. */
+interface MissCandidate {
+  score: number
+  miss: MissChallenge
+  taught: TaughtRoute
+}
+
+/** Draw `n` items without replacement, weighting by `remainder` so higher
+ *  (harder) finishes/setups come up more often without killing variety. */
+function weightedSample(pool: MissCandidate[], n: number, rand: () => number): MissCandidate[] {
+  const rest = [...pool]
+  const picked: MissCandidate[] = []
+  while (picked.length < n && rest.length > 0) {
+    const total = rest.reduce((sum, c) => sum + c.miss.remainder, 0)
+    let r = rand() * total
+    let idx = rest.length - 1
+    for (let i = 0; i < rest.length; i++) {
+      r -= rest[i].miss.remainder
+      if (r <= 0) {
+        idx = i
+        break
+      }
+    }
+    picked.push(rest.splice(idx, 1)[0])
+  }
+  return picked
+}
+
+/**
+ * Build a dedicated miss-training lesson. Pulls from the whole learn range
+ * (61–170, regardless of unlocked stage), drops trivial finishes (remainder
+ * ≤ MISS_MIN_REMAINDER), and aims for a 50/50 mix of checkable 2-dart finishes
+ * and "must set up a double" challenges — biased toward higher values.
+ */
 export function buildMissLesson(state = getState(), seed = Date.now()): LessonItem[] {
   const favs = favoritesOf(state)
-  // Pool: practiced (reps ≥ 1) eligible scores
-  let pool = LEARN_SCORES.filter((score) => {
-    const item = state.items[score]
-    return item && item.reps >= 1 && missEligible(score, favs)
-  })
-  // Pad from unlocked stages if short
-  if (pool.length < LESSON_SIZE) {
-    const unlocked = computeUnlockedStage(state)
-    const pad = LEARN_SCORES.filter((score) => {
-      const item = state.items[score]
-      const stage = STAGES.find((s) => s.scores.includes(score))
-      return (!item || item.reps < 1) && missEligible(score, favs) && stage && stage.id <= unlocked
-    })
-    pool = [...pool, ...pad]
-  }
-  const shuffled = seededShuffle(pool, seed).slice(0, LESSON_SIZE)
-  const items: LessonItem[] = []
-  shuffled.forEach((score, i) => {
+  const rand = mulberry32(seed)
+
+  const candidates: MissCandidate[] = []
+  for (const score of LEARN_SCORES) {
+    if (!missEligible(score, favs)) continue
     const miss = buildMissChallenge(score, favs)
-    if (!miss) return
+    if (!miss || miss.remainder <= MISS_MIN_REMAINDER) continue
     const taught = taughtRoute(score, favs)
-    if (!taught) return
-    const exercise: ExerciseType = i % 2 === 0 ? 'board' : 'tiles'
-    items.push({ score, exercise, isNew: false, taught, miss })
-  })
-  return items
+    if (!taught) continue
+    candidates.push({ score, miss, taught })
+  }
+
+  const finishes = candidates.filter((c) => c.miss.kind === 'finish')
+  const setups = candidates.filter((c) => c.miss.kind === 'setup')
+
+  const half = Math.floor(LESSON_SIZE / 2)
+  const pickedFinish = weightedSample(finishes, half, rand)
+  const pickedSetup = weightedSample(setups, LESSON_SIZE - half, rand)
+  // Top up from the other bucket if one ran short, so we still fill the lesson.
+  const selected = [...pickedFinish, ...pickedSetup]
+  if (selected.length < LESSON_SIZE) {
+    const usedScores = new Set(selected.map((c) => c.score))
+    const leftover = candidates.filter((c) => !usedScores.has(c.score))
+    selected.push(...weightedSample(leftover, LESSON_SIZE - selected.length, rand))
+  }
+
+  const ordered = seededShuffle(selected, seed)
+  return ordered.map((c, i) => ({
+    score: c.score,
+    exercise: (i % 2 === 0 ? 'board' : 'tiles') as ExerciseType,
+    isNew: false,
+    taught: c.taught,
+    miss: c.miss
+  }))
 }
 
 /** True once the learner has mastered every unit — unlocks endless mode. */

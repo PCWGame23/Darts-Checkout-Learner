@@ -2,16 +2,15 @@ import { useState } from 'react'
 import { dartLabel, type Dart, type Ring } from '../../engine/darts'
 import { useT } from '../../i18n'
 import Dartboard from '../Dartboard'
-import { acceptedFor, gradeBuilt, type ExerciseProps } from './common'
-import MissHeader from './MissHeader'
+import { gradeBuilt, maxDartsFor, submittableLengths, type ExerciseProps } from './common'
 
 export default function BoardEntry({ item, onAnswer }: ExerciseProps) {
   const t = useT()
   const [darts, setDarts] = useState<Dart[]>([])
   const [sector, setSector] = useState<number | undefined>()
 
-  const lengths = acceptedFor(item).map((r) => r.length)
-  const maxDarts = Math.max(...lengths)
+  const lengths = submittableLengths(item)
+  const maxDarts = maxDartsFor(item)
   const minDarts = Math.min(...lengths)
 
   const addDart = (ring: Ring) => {
@@ -34,13 +33,12 @@ export default function BoardEntry({ item, onAnswer }: ExerciseProps) {
 
   return (
     <div className="grow" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {item.miss ? (
-        <MissHeader miss={item.miss} />
-      ) : (
-        <div className="prompt-score" style={{ fontSize: '2.6rem', margin: 0 }}>{item.score}</div>
-      )}
+      <div className="prompt-score" style={{ fontSize: '2.6rem', margin: 0 }}>{item.score}</div>
       <p className="hint">{t('ex.board.explain')}</p>
       <div className="chip-row">
+        {item.miss && (
+          <span className="dart-chip given">{dartLabel(item.miss.hit)}</span>
+        )}
         {Array.from({ length: maxDarts }, (_, i) =>
           darts[i] ? (
             <span key={i} className="dart-chip">{dartLabel(darts[i])}</span>

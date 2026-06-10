@@ -215,6 +215,12 @@ button:disabled {
   color: var(--text-dim);
   border: 2px dashed var(--card-raised);
 }
+/* A pre-filled, non-editable dart (the dart already thrown before a miss). */
+.dart-chip.given {
+  background: var(--bg-deep);
+  color: var(--text-dim);
+  border: 2px solid var(--card-raised);
+}
 .dart-chip.slot.optional {
   opacity: 0.45;
   border-style: dotted;

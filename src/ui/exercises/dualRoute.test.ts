@@ -34,8 +34,8 @@ describe('dual-route acceptance (favourite + pro)', () => {
     expect(gradeBuilt(parseRoute('T20 D10'), item)).toBe('good')
   })
 
-  it('grades another valid finish as almost', () => {
-    expect(gradeBuilt(parseRoute('D20 D20'), item)).toBe('almost')
+  it('grades another valid finish as good (any correct math counts)', () => {
+    expect(gradeBuilt(parseRoute('D20 D20'), item)).toBe('good')
   })
 
   it('grades an invalid route as again', () => {

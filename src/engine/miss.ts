@@ -1,4 +1,4 @@
-import { ALL_DARTS, type Dart, type Route, dartValue, routeLabel, routeValue, sameDart } from './darts'
+import { ALL_DARTS, type Dart, type Route, dartValue, routeLabel, routeValue } from './darts'
 import { acceptedRoutes, type Favorites, type TaughtRoute, taughtRoute } from './calibrate'
 import { isValidFinish, minDartsToFinish } from './routes'
 
@@ -160,10 +160,6 @@ export function missAcceptedRoutes(c: MissChallenge): Route[] {
   return c.bestSetup ? [c.bestSetup] : []
 }
 
-function exactMatch(built: Route, route: Route): boolean {
-  return built.length === route.length && built.every((d, i) => sameDart(d, route[i]))
-}
-
 function isValidSetup(route: Route, remainder: number): boolean {
   if (route.length !== 2) return false
   let remaining = remainder
@@ -177,8 +173,9 @@ function isValidSetup(route: Route, remainder: number): boolean {
 
 export function gradeMissAnswer(built: Route, c: MissChallenge): 'good' | 'almost' | 'again' {
   if (c.kind === 'finish') {
-    if (missAcceptedRoutes(c).some((route) => exactMatch(built, route))) return 'good'
-    if (isValidFinish(built, c.remainder)) return 'almost'
+    // Any mathematically valid finish of the remainder counts as fully
+    // correct — there's no single "right" recovery route.
+    if (isValidFinish(built, c.remainder)) return 'good'
     return 'again'
   }
   // setup

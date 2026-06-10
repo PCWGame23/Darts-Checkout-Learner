@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
 import { routeLabel, routeValue, type Route } from '../engine/darts'
-import { missAcceptedRoutes } from '../engine/miss'
 import { useT } from '../i18n'
 import {
   buildEndlessLesson,
@@ -126,23 +125,25 @@ function FeedbackPanel({ feedback, onContinue }: { feedback: Feedback; onContinu
 
   const favRoute = routeLabel(item.taught.route)
   const proTip = item.taught.proTip ? routeLabel(item.taught.proTip) : null
-  // Built the pro route instead of the favourite one: lead with it and show
-  // the favourite route as the secondary hint.
-  const builtPro = grade === 'good' && proTip !== null && built && routeLabel(built) === proTip
-  const route = builtPro ? proTip : favRoute
+  const builtLabel = built ? routeLabel(built) : null
+  // Lead with what the player actually threw when it was correct; otherwise
+  // show the recommended (favourite) route.
+  const route = grade === 'good' && builtLabel ? builtLabel : favRoute
+  // They found a valid finish that isn't the recommended one: nudge them to it.
+  const showFavHint = grade === 'good' && builtLabel !== null && builtLabel !== favRoute
   const message =
     grade === 'good'
       ? t('lesson.correct')
       : grade === 'almost'
-        ? t('lesson.alsoWorks', { route })
-        : t('lesson.wrong', { route })
+        ? t('lesson.alsoWorks', { route: favRoute })
+        : t('lesson.wrong', { route: favRoute })
 
   return (
     <div className="grow" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div className="prompt-score">{item.score}</div>
       <div className="route-display">{route}</div>
       <div className={`feedback ${grade}`}>{message}</div>
-      {builtPro ? (
+      {showFavHint ? (
         <div className="pro-tip">{t('lesson.favRoute', { route: favRoute })}</div>
       ) : (
         proTip && <div className="pro-tip">{t('lesson.proTip', { route: proTip })}</div>
@@ -161,25 +162,26 @@ function MissFeedbackPanel({ feedback, onContinue }: { feedback: Feedback; onCon
   const miss = item.miss!
 
   if (miss.kind === 'finish') {
-    const taught = miss.taught!
-    const favRoute = routeLabel(taught.route)
-    const proTip = taught.proTip ? routeLabel(taught.proTip) : null
-    const builtPro = grade === 'good' && proTip !== null && built && routeLabel(built) === proTip
-    const route = builtPro ? proTip : favRoute
+    const favRoute = miss.taught ? routeLabel(miss.taught.route) : null
+    const proTip = miss.taught?.proTip ? routeLabel(miss.taught.proTip) : null
+    const builtLabel = built ? routeLabel(built) : null
+    const route = (grade === 'good' && builtLabel) || favRoute || builtLabel || ''
+    // Show the full visit: the dart already thrown (the miss) + the rescue route.
+    const fullRoute = `${routeLabel([miss.hit])}  ${route}`
+    const showFavHint =
+      grade === 'good' && favRoute !== null && builtLabel !== null && builtLabel !== favRoute
     const message =
       grade === 'good'
         ? t('lesson.correct')
-        : grade === 'almost'
-          ? t('lesson.alsoWorks', { route })
-          : t('lesson.wrong', { route })
+        : t('lesson.wrong', { route: favRoute ?? '' })
 
     return (
       <div className="grow" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div className="prompt-score">{miss.remainder}</div>
-        <div className="route-display">{route}</div>
+        <div className="prompt-score">{item.score}</div>
+        <div className="route-display">{fullRoute}</div>
         <div className={`feedback ${grade}`}>{message}</div>
-        {builtPro ? (
-          <div className="pro-tip">{t('lesson.favRoute', { route: favRoute })}</div>
+        {showFavHint ? (
+          <div className="pro-tip">{t('lesson.favRoute', { route: favRoute! })}</div>
         ) : (
           proTip && <div className="pro-tip">{t('lesson.proTip', { route: proTip })}</div>
         )}
@@ -198,6 +200,7 @@ function MissFeedbackPanel({ feedback, onContinue }: { feedback: Feedback; onCon
   const bestSetup = miss.bestSetup!
   const bestLeave = miss.remainder - routeValue(bestSetup)
   const bestRouteLabel = routeLabel(bestSetup)
+  const fullRoute = `${routeLabel([miss.hit])}  ${bestRouteLabel}`
   const userLeave = built ? miss.remainder - routeValue(built) : undefined
 
   const message =
@@ -213,8 +216,8 @@ function MissFeedbackPanel({ feedback, onContinue }: { feedback: Feedback; onCon
 
   return (
     <div className="grow" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div className="prompt-score">{miss.remainder}</div>
-      <div className="route-display">{bestRouteLabel}</div>
+      <div className="prompt-score">{item.score}</div>
+      <div className="route-display">{fullRoute}</div>
       <div className={`feedback ${grade}`}>{message}</div>
       <div className="grow" />
       <button className="btn-primary" onClick={onContinue}>
