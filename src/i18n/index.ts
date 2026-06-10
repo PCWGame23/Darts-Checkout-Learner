@@ -66,6 +66,7 @@ const de = {
   'ex.flash.didntKnow': 'Wusste ich nicht',
   'ex.board.explain': 'Tippe Feld und Ring für jeden Dart.',
   'ex.tiles.explain': 'Baue die Route in der richtigen Reihenfolge.',
+  'ex.match.explain': 'Tippe Wurf und Wert, die zusammengehören.',
   'ex.undo': 'Zurück',
   'ex.clear': 'Löschen',
   // Settings
@@ -156,6 +157,7 @@ const en: Record<keyof typeof de, string> = {
   'ex.flash.didntKnow': "Didn't know",
   'ex.board.explain': 'Tap segment and ring for each dart.',
   'ex.tiles.explain': 'Build the route in the right order.',
+  'ex.match.explain': 'Tap the finish and value that go together.',
   'ex.undo': 'Undo',
   'ex.clear': 'Clear',
   'settings.title': 'Settings',

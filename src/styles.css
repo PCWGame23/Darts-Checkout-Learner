@@ -258,6 +258,35 @@ button:disabled {
   opacity: 0.25;
 }
 
+/* Matching exercise (route ↔ value, two shuffled columns) */
+.match-grid {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}
+.match-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.match-tile {
+  width: 100%;
+  background: var(--card-raised);
+  border: 2px solid transparent;
+  border-radius: 12px;
+  padding: 16px 12px;
+  font-weight: 700;
+  font-size: 1.15rem;
+}
+.match-tile.selected {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.match-tile.matched {
+  opacity: 0.22;
+}
+
 /* Dartboard */
 .board-wrap {
   display: flex;

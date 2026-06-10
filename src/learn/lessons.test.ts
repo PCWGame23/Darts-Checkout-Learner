@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { buildLesson, buildMissLesson, LESSON_SIZE, MISS_MIN_REMAINDER } from './lessons'
 import { STAGES } from './progress'
+import { routeValue } from '../engine/darts'
 import type { AppState, ItemProgress } from '../state/store'
 
 function stateWith(items: Record<string, ItemProgress>, favorites = {}): AppState {
@@ -25,6 +26,17 @@ describe('buildLesson dead-end fallback', () => {
     expect(lesson.some((i) => i.isNew)).toBe(true)
   })
 
+  it('leads with a matching warm-up whose pairs are self-consistent', () => {
+    const lesson = buildLesson(stateWith({}), today)
+    const match = lesson.find((i) => i.exercise === 'match')
+    expect(match).toBeDefined()
+    expect(match!.match!.length).toBeGreaterThanOrEqual(3)
+    // Every route must actually finish the score it's paired with.
+    for (const pair of match!.match!) {
+      expect(routeValue(pair.route)).toBe(pair.score)
+    }
+  })
+
   it('still gives a lesson when every unlocked score is practised but none is due', () => {
     // Every stage-0 score touched once (reps 1, < mastery) and scheduled far in
     // the future: no new items, nothing due — this used to yield an empty
@@ -36,7 +48,8 @@ describe('buildLesson dead-end fallback', () => {
     }
     const lesson = buildLesson(stateWith(items), today)
     expect(lesson.length).toBeGreaterThan(0)
-    expect(lesson.length).toBeLessThanOrEqual(LESSON_SIZE)
+    // +1 for the optional matching warm-up that leads each lesson.
+    expect(lesson.length).toBeLessThanOrEqual(LESSON_SIZE + 1)
     for (const it of lesson) {
       expect(STAGES[0].scores).toContain(it.score)
       expect(it.isNew).toBe(false)

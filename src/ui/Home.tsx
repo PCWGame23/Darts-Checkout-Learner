@@ -3,7 +3,7 @@ import {
   computeUnlockedStage,
   currentStageId,
   isStageComplete,
-  masteredCount,
+  practicedCount,
   stageProgress,
   STAGES
 } from '../learn/progress'
@@ -67,7 +67,7 @@ export default function Home({ onStartLesson, onStartEndless, onStartMiss, onSet
           const done = isStageComplete(state, stage)
           const isCurrent = stage.id === current
           const pct = Math.round(stageProgress(state, stage) * 100)
-          const mastered = masteredCount(state, stage)
+          const practiced = practicedCount(state, stage)
           const face = locked ? '🔒' : done ? '★' : isCurrent ? (doneToday ? '✓' : '🎯') : '☆'
 
           return (
@@ -114,7 +114,7 @@ export default function Home({ onStartLesson, onStartEndless, onStartMiss, onSet
                 {t(stage.nameKey)}
                 {!locked && (
                   <span className="node-sub">
-                    {mastered}/{stage.scores.length}
+                    {practiced}/{stage.scores.length}
                   </span>
                 )}
               </div>

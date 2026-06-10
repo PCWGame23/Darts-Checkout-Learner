@@ -1,7 +1,7 @@
 // Daily lesson builder: ~10 exercises mixing due reviews with new items
 // from the current stage, plus streak bookkeeping and recalibration.
 
-import { parseDart } from '../engine/darts'
+import { parseDart, type Route } from '../engine/darts'
 import { taughtRoute, type Favorites, type TaughtRoute } from '../engine/calibrate'
 import {
   buildMissChallenge,
@@ -25,7 +25,13 @@ import {
 } from './progress'
 import { dueItems, gradeItem, newItem, type Grade } from './scheduler'
 
-export type ExerciseType = 'board' | 'tiles'
+export type ExerciseType = 'board' | 'tiles' | 'match'
+
+/** One route↔score pair shown in a matching exercise. */
+export interface MatchPair {
+  score: number
+  route: Route
+}
 
 export interface LessonItem {
   score: number
@@ -33,10 +39,15 @@ export interface LessonItem {
   isNew: boolean
   taught: TaughtRoute
   miss?: MissChallenge
+  /** Present only on a 'match' exercise: the pairs to connect. */
+  match?: MatchPair[]
 }
 
 export const LESSON_SIZE = 10
 const MAX_NEW_PER_LESSON = 4
+/** A matching warm-up needs at least this many pairs, and shows at most this many. */
+const MATCH_MIN = 3
+const MATCH_MAX = 5
 export const MISS_UNLOCK_MIN = 5
 /** Miss training drops trivial finishes: any remainder this low or below is
  *  a one-/easy-two-dart checkout and not worth drilling. */
@@ -140,7 +151,33 @@ export function buildLesson(state = getState(), today = todayISO()): LessonItem[
   }
 
   // Interleave reviews and new items so the lesson doesn't feel ordered.
-  return seededShuffle(items, daySeed(today))
+  const ordered = seededShuffle(items, daySeed(today))
+
+  // Lead with a Duolingo-style matching warm-up built from the lesson's own
+  // scores (route ↔ value). Reinforces the same checkouts before drilling them.
+  const match = buildMatchItem(ordered, daySeed(today))
+  return match ? [match, ...ordered] : ordered
+}
+
+/** Build a matching warm-up from a lesson's items (route ↔ score pairs), or
+ *  null if there aren't enough distinct checkouts to make it worthwhile. */
+function buildMatchItem(items: LessonItem[], seed: number): LessonItem | null {
+  const seen = new Set<number>()
+  const pool: LessonItem[] = []
+  for (const it of items) {
+    if (seen.has(it.score)) continue
+    seen.add(it.score)
+    pool.push(it)
+  }
+  if (pool.length < MATCH_MIN) return null
+  const chosen = seededShuffle(pool, seed ^ 0x5f3759df).slice(0, MATCH_MAX)
+  return {
+    score: chosen[0].score,
+    exercise: 'match',
+    isNew: false,
+    taught: chosen[0].taught,
+    match: chosen.map((it) => ({ score: it.score, route: it.taught.route }))
+  }
 }
 
 /**

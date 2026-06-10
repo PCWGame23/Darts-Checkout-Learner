@@ -12,6 +12,7 @@ import {
 import type { Grade } from '../learn/scheduler'
 import { useAppState } from '../state/store'
 import BoardEntry from './exercises/BoardEntry'
+import MatchExercise from './exercises/MatchExercise'
 import TileOrder from './exercises/TileOrder'
 import Mascot from './Mascot'
 
@@ -50,6 +51,14 @@ export default function LessonScreen({ onExit, mode = 'lesson' }: Props) {
   const item = lesson[index]
 
   const handleAnswer = (grade: Grade, built?: Route) => {
+    // A matching round credits every pair it covers and skips the per-item
+    // feedback panel (Duolingo-style: solving it is its own confirmation).
+    if (item.exercise === 'match' && item.match) {
+      for (const pair of item.match) recordAnswer(pair.score, grade)
+      setCorrect((c) => c + 1)
+      next()
+      return
+    }
     if (mode !== 'miss' || grade !== 'again') {
       recordAnswer(item.score, grade)
     }
@@ -109,6 +118,7 @@ export default function LessonScreen({ onExit, mode = 'lesson' }: Props) {
         <>
           {item.exercise === 'board' && <BoardEntry item={item} onAnswer={handleAnswer} />}
           {item.exercise === 'tiles' && <TileOrder item={item} onAnswer={handleAnswer} />}
+          {item.exercise === 'match' && <MatchExercise item={item} onAnswer={handleAnswer} />}
         </>
       )}
     </div>
