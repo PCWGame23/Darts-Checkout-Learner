@@ -191,6 +191,17 @@ describe('calibration cascade', () => {
       if (t.source === 'fav2') expect(last).toEqual(D(16))
     }
   })
+
+  it('never teaches a multi-dart route that opens on a double (treble first)', () => {
+    const configs = [{}, { first: D(20) }, { first: D(16) }, favs, { first: D(18), second: D(10) }]
+    for (const cfg of configs) {
+      for (const score of FINISHABLE_SCORES) {
+        const t = taughtRoute(score, cfg)
+        if (!t || t.route.length < 2) continue
+        expect(t.route[0].ring, `score ${score} cfg ${JSON.stringify(cfg)} → ${routeLabel(t.route)}`).not.toBe('D')
+      }
+    }
+  })
 })
 
 describe('favourite warnings', () => {

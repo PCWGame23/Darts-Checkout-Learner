@@ -38,7 +38,13 @@ export interface TaughtRoute {
 
 function favRoute(score: number, fav: Dart | undefined, maxDarts: 1 | 2 | 3): Route | null {
   if (!fav || fav.ring !== 'D') return null
-  return bestRoute(score, maxDarts, fav)
+  const route = bestRoute(score, maxDarts, fav)
+  // Reject a favourite route that opens on a double (e.g. 80 → "D20 D20",
+  // 90 → "Bull D20"). Conventional play leads with a big scoring dart — a
+  // treble — so for these scores fall back to favourite #2 / the textbook
+  // route, which keep the treble-first ordering.
+  if (route && route.length >= 2 && route[0].ring === 'D') return null
+  return route
 }
 
 function directDouble(score: number): Dart | undefined {

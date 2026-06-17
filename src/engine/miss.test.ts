@@ -39,11 +39,9 @@ describe('missIntendedDart', () => {
     expect(missIntendedDart(125, {})).toBeNull()
   })
 
-  it('64 fav D16 eligible via proTip T16', () => {
+  it('64 fav D16 → T16 D8 (textbook; the favourite "D16 D16" would open on a double)', () => {
     const t = taughtRoute(64, favD16)!
-    expect(routeLabel(t.route)).toBe('D16 D16')
-    expect(t.proTip).toBeDefined()
-    expect(routeLabel(t.proTip!)).toBe('T16 D8')
+    expect(routeLabel(t.route)).toBe('T16 D8')
     const d = missIntendedDart(64, favD16)!
     expect(d).toEqual(T(16))
   })
