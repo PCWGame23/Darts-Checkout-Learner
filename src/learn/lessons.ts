@@ -54,7 +54,7 @@ export const MISS_UNLOCK_MIN = 5
 export const MISS_MIN_REMAINDER = 60
 
 /** Deterministic shuffle so a given seed always yields the same order. */
-function seededShuffle<T>(arr: readonly T[], seed: number): T[] {
+export function seededShuffle<T>(arr: readonly T[], seed: number): T[] {
   const a = [...arr]
   let s = (seed >>> 0) || 1
   const rand = () => {
@@ -294,10 +294,10 @@ export function recordAnswer(score: number, grade: Grade, today = todayISO()): I
   const state = getState()
   const existing = state.items[score] ?? newItem(score, today)
   const updated = gradeItem(existing, grade, today)
-  setState((s) => ({
-    items: { ...s.items, [score]: updated }
-  }))
-  setState((s) => ({ stageUnlocked: computeUnlockedStage(s) }))
+  setState((s) => {
+    const items = { ...s.items, [score]: updated }
+    return { items, stageUnlocked: computeUnlockedStage({ ...s, items }) }
+  })
   return updated
 }
 

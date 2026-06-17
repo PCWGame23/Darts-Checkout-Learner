@@ -51,10 +51,11 @@ export default function LessonScreen({ onExit, mode = 'lesson' }: Props) {
   const item = lesson[index]
 
   const handleAnswer = (grade: Grade, built?: Route) => {
-    // A matching round credits every pair it covers and skips the per-item
-    // feedback panel (Duolingo-style: solving it is its own confirmation).
-    if (item.exercise === 'match' && item.match) {
-      for (const pair of item.match) recordAnswer(pair.score, grade)
+    // The matching round is a warm-up: every score it covers is drilled again
+    // later in this same lesson, so recording progress here would double-count
+    // each rep and advance brand-new items before they're ever truly tested.
+    // Solving it is its own confirmation — just advance, no feedback panel.
+    if (item.exercise === 'match') {
       setCorrect((c) => c + 1)
       next()
       return
